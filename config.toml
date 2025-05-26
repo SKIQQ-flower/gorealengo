@@ -1,0 +1,8 @@
+[game]
+name = "Realengo Conflict"
+
+[window]
+window_width = 1152
+window_height = 648
+viewport_width = 576
+viewport_height = 324
