@@ -46,10 +46,11 @@ func (b *Board) DrawPanel() {
 		Y:       0,
 		Layout:  components.Vertical,
 		Spacing: 2,
+		Padding: 5,
 	}
 	panel.Add(header)
 	panel.Add(descriptionLabel)
-	np := components.NewNinePatch(globals.ContainerNPatchTexture, 23, 12, 23, 23)
+	np := components.NewNinePatch(globals.ContainerNPatchTexture, 23, 12, 23, 12)
 	panel.SetBackground(np)
 	panel.Draw()
 }

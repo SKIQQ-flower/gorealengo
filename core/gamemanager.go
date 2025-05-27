@@ -6,73 +6,66 @@ import (
 	"github.com/skwb/realengo-conflict/core/event"
 	"github.com/skwb/realengo-conflict/core/globals"
 	"github.com/skwb/realengo-conflict/core/nodes/pointer"
-
 	scenemanager "github.com/skwb/realengo-conflict/core/scenes"
 )
 
 func StartGame() {
-	var signal_bus = event.NewSignalBus()
-	var manager = &scenemanager.SceneManager{}
-	var cfg, _ = config.LoadConfig()
+	signalBus := event.NewSignalBus()
+	manager := &scenemanager.SceneManager{}
+	cfg, _ := config.LoadConfig()
+
 	rl.InitWindow(cfg.Window.WindowWidth, cfg.Window.WindowHeight, cfg.Game.GameName)
+	defer rl.CloseWindow()
+
+	virtualW := float32(cfg.Window.ViewportWidth)
+	virtualH := float32(cfg.Window.ViewportHeight)
+
+	renderTexture := rl.LoadRenderTexture(int32(virtualW), int32(virtualH))
+	defer rl.UnloadRenderTexture(renderTexture)
+
 	globals.ContainerNPatchTexture = rl.LoadTexture("./assets/sprites/npatchs/container.png")
-	var pointer = pointer.NewPointer(rl.LoadTexture("./assets/sprites/pointer/pressed.png"), rl.LoadTexture("./assets/sprites/pointer/regular.png"))
+	defer rl.UnloadTexture(globals.ContainerNPatchTexture)
+
+	p := pointer.NewPointer(
+		rl.LoadTexture("./assets/sprites/pointer/pressed.png"),
+		rl.LoadTexture("./assets/sprites/pointer/regular.png"),
+	)
+	defer p.Unload()
+
 	rl.SetWindowIcon(*rl.LoadImage("assets/sprites/gameicon.png"))
-	var virtualWidth = cfg.Window.ViewportWidth
-	var virtualHeight = cfg.Window.ViewportHeight
-	var menu *scenemanager.MenuScene = &scenemanager.MenuScene{
-		Bus: signal_bus,
+	rl.SetTargetFPS(60)
+
+	menu := &scenemanager.MenuScene{
+		Bus: signalBus,
 		SetSceneFunc: func(s scenemanager.Scene) {
 			manager.SetScene(s)
 		},
 	}
 	manager.SetScene(menu)
-	defer rl.CloseWindow()
-	var viewport = rl.LoadRenderTexture(virtualWidth, virtualHeight)
-
-	rl.SetTargetFPS(60)
 
 	for !rl.WindowShouldClose() {
+		screenW := float32(rl.GetScreenWidth())
+		screenH := float32(rl.GetScreenHeight())
+
 		manager.Update()
 		DefaultShortcuts()
-		rl.BeginTextureMode(viewport)
+
+		rl.BeginTextureMode(renderTexture)
 		rl.ClearBackground(rl.Black)
+
 		manager.Draw()
-		pointer.DrawPointer()
+		p.DrawPointer()
+
 		rl.EndTextureMode()
-
-		screenWidth := float32(rl.GetScreenWidth())
-		screenHeight := float32(rl.GetScreenHeight())
-		screenRatio := screenWidth / screenHeight
-		targetRatio := float32(virtualWidth) / float32(virtualHeight)
-
-		var scale, destWidth, destHeight, destX, destY float32
-		if screenRatio >= targetRatio {
-			scale = screenHeight / float32(virtualHeight)
-			destWidth = float32(virtualWidth) * scale
-			destHeight = screenHeight
-			destX = (screenWidth - destWidth) / 2
-			destY = 0
-		} else {
-			scale = screenWidth / float32(virtualWidth)
-			destWidth = screenWidth
-			destHeight = float32(virtualHeight) * scale
-			destX = 0
-			destY = (screenHeight - destHeight) / 2
-		}
-
-		src := rl.Rectangle{X: 0, Y: 0, Width: float32(virtualWidth), Height: -float32(virtualHeight)}
-		dest := rl.Rectangle{X: destX, Y: destY, Width: destWidth, Height: destHeight}
-		origin := rl.Vector2{X: 0, Y: 0}
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.Black)
-		rl.DrawTexturePro(viewport.Texture, src, dest, origin, 0, rl.White)
+
+		src := rl.NewRectangle(0, 0, virtualW, -virtualH)
+		dst := rl.NewRectangle(0, 0, screenW, screenH)
+		rl.DrawTexturePro(renderTexture.Texture, src, dst, rl.NewVector2(0, 0), 0, rl.White)
 
 		manager.DrawInScreen()
-
 		rl.EndDrawing()
 	}
-	rl.UnloadTexture(globals.ContainerNPatchTexture)
-	pointer.Unload()
 }

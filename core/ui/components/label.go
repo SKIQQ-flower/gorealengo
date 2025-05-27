@@ -26,7 +26,7 @@ func (l *Label) GetSize() (int32, int32) {
 func NewLabel(text string) *Label {
 	return &Label{
 		Text:     text,
-		FontSize: 20,
+		FontSize: 12,
 		Color:    rl.Black,
 	}
 }
